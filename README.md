@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-# devsecops-Assistant
-=======
-# DevSecOps Assistant
+
 
 This is a modular **DevSecOps Assistant** skeleton implemented in Python.
 
@@ -51,4 +48,4 @@ python -m devsecops_assistant.cli akamai list-properties   --config config/akama
 You can now push this project to:
 
 - `https://github.com/narin-kura/devsecops-Assistant`
->>>>>>> b02cabc (chore: push all DevSecOps Assistant modules and updates)
+
