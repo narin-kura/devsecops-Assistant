@@ -1,0 +1,11 @@
+# Example Akamai configuration.
+# In real usage, prefer environment variables or a secrets manager.
+base_url: "https://akab-xxxxxxxx.luna.akamaiapis.net"
+
+# Either fill these in, or set:
+#   AKAMAI_CLIENT_TOKEN
+#   AKAMAI_CLIENT_SECRET
+#   AKAMAI_ACCESS_TOKEN
+client_token: ""
+client_secret: ""
+access_token: ""
