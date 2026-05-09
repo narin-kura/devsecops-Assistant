@@ -1,0 +1,66 @@
+# sample_project.yaml
+# ──────────────────────────────────────────────────────────────────────────────
+# Onboarding config for devsecops-assistant.
+#
+# Usage:
+#   python -m devsecops_assistant.cli onboard \
+#     --config examples/onboarding/sample_project.yaml \
+#     --output-dir onboarding-output
+#
+# Add --tools jenkins,github to run only specific providers.
+# Add --dry-run to preview what would be generated without writing files.
+# ──────────────────────────────────────────────────────────────────────────────
+
+project:
+  name: my-awesome-app
+  description: "My awesome Python microservice"
+  language: python           # python | java | node | go
+  repo_url: https://github.com/my-org/my-awesome-app.git
+  default_branch: main
+  team: platform-team        # used in CODEOWNERS
+
+onboard_to:
+
+  # ── Jenkins ────────────────────────────────────────────────────────────────
+  jenkins:
+    enabled: true
+    url: https://jenkins.example.com
+    folder: my-team            # job will be created at my-team/my-awesome-app
+    agent_label: docker        # Jenkins agent label (ignored if docker_image set)
+    # docker_image: python:3.12-slim   # uncomment to pin a docker agent image
+    branch_pattern: "main|develop|feature/.*"
+
+  # ── GitHub ─────────────────────────────────────────────────────────────────
+  github:
+    enabled: true
+    org: my-org
+    default_branch: main
+    default_team: platform-team
+    required_status_checks:
+      - build
+      - security-scan
+
+  # ── Harness ────────────────────────────────────────────────────────────────
+  harness:
+    enabled: true
+    account_id: abc123xyz
+    org_id: my-org
+    project_id: my_awesome_app
+    docker_connector: docker_hub
+    repo_connector: github_connector
+    k8s_connector: k8s_prod_cluster
+    namespace: my-awesome-app
+    docker_image_repo: myorg/my-awesome-app
+
+  # ── Custom / Generic tool ──────────────────────────────────────────────────
+  # Any unknown key is treated as a generic tool; you supply the Jinja2 template.
+  # The template receives:  project  (the project block above)
+  #                         + any extra keys from a 'values' YAML file.
+  #
+  # argocd:
+  #   enabled: true
+  #   name: ArgoCD                       # display name in output messages
+  #   templates:
+  #     - template: examples/onboarding/templates/argocd-app.yaml.j2
+  #       output: argocd/application.yaml
+  #       values: examples/onboarding/values/argocd_values.yaml

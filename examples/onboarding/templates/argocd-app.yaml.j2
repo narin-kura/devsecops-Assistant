@@ -1,0 +1,24 @@
+{# ArgoCD Application manifest — rendered by devsecops-assistant generic provider #}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ project.name }}
+  namespace: argocd
+  labels:
+    managed-by: devsecops-assistant
+    team: {{ project.team | default('platform') }}
+spec:
+  project: {{ argocd_project | default('default') }}
+  source:
+    repoURL: {{ project.repo_url }}
+    targetRevision: {{ project.default_branch | default('main') }}
+    path: {{ manifests_path | default('k8s') }}
+  destination:
+    server: {{ cluster_url | default('https://kubernetes.default.svc') }}
+    namespace: {{ namespace | default(project.name) }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
