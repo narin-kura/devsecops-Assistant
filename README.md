@@ -32,6 +32,22 @@ pip install -r requirements.txt
 python -m core.cli -h
 ```
 
+## Running tests
+
+```bash
+pip install -r requirements-dev.txt
+
+pytest              # fast, free, deterministic — mocks the Claude API boundary
+pytest -m live -v   # opt-in: hits the real API, needs ANTHROPIC_API_KEY, costs tokens
+```
+
+The default `pytest` run never makes a network call — `test_coordinator.py`
+and `test_ci_onboarding_specialist.py` mock the Tool Runner boundary to
+verify the assistant's own orchestration logic (message history, error
+handling, delegation) without needing credentials. `test_live_chat.py` is
+excluded by default (see `pytest.ini`) and only runs real end-to-end checks
+against the live model when you explicitly ask for it.
+
 ## Chat with the coordinator
 
 ```bash
@@ -64,7 +80,7 @@ python -m core.cli onboard --ci jenkins --dry-run
 python -m core.cli onboard --ci azure --deploy-branch develop
 ```
 
-**Supported CI tools:** `github-actions`, `gitlab`, `jenkins`, `azure`, `bitbucket`, `circleci`
+**Supported CI tools:** `github-actions`, `gitlab`, `jenkins`, `azure`, `bitbucket`, `circleci`, `harness`
 
 **Auto-detected languages:** Python, JavaScript/TypeScript, Java/Kotlin, Go, Rust, C#/.NET, Ruby
 

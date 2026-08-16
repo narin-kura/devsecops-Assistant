@@ -1,0 +1,136 @@
+pipeline:
+  name: {{ language|capitalize }} CI/CD
+  identifier: ci_cd_pipeline
+  projectIdentifier: <+input>
+  orgIdentifier: <+input>
+  tags: {}
+  properties:
+    ci:
+      codebase:
+        connectorRef: <+input>
+        build: <+input>
+  stages:
+    - stage:
+        name: Build and Test
+        identifier: Build_and_Test
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+{% if cache_paths %}
+          caching:
+            enabled: true
+            paths:
+{% for cp in cache_paths %}
+              - {{ cp }}
+{% endfor %}
+{% endif %}
+          execution:
+            steps:
+{% if install_cmd %}
+              - step:
+                  type: Run
+                  name: Install dependencies
+                  identifier: install_dependencies
+                  spec:
+                    shell: Sh
+                    command: |-
+                      {{ install_cmd }}
+{% endif %}
+{% if build_cmd %}
+              - step:
+                  type: Run
+                  name: Build
+                  identifier: build
+                  spec:
+                    shell: Sh
+                    command: |-
+                      {{ build_cmd }}
+{% endif %}
+{% if has_lint and lint_cmd %}
+              - step:
+                  type: Run
+                  name: Lint
+                  identifier: lint
+                  spec:
+                    shell: Sh
+                    command: |-
+                      {{ lint_cmd }}
+{% endif %}
+{% if has_tests and test_cmd %}
+              - step:
+                  type: Run
+                  name: Run tests
+                  identifier: run_tests
+                  spec:
+                    shell: Sh
+                    command: |-
+                      {{ test_cmd }}
+{% endif %}
+{% if has_security_scan and security_cmd %}
+    - stage:
+        name: Security Scan
+        identifier: Security_Scan
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+{% if install_cmd %}
+              - step:
+                  type: Run
+                  name: Install dependencies
+                  identifier: install_dependencies
+                  spec:
+                    shell: Sh
+                    command: |-
+                      {{ install_cmd }}
+{% endif %}
+              - step:
+                  type: Run
+                  name: Dependency security scan
+                  identifier: security_scan
+                  spec:
+                    shell: Sh
+                    command: |-
+                      {{ security_cmd }}
+{% endif %}
+{% if has_docker %}
+    - stage:
+        name: Docker Build and Push
+        identifier: Docker_Build_and_Push
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: BuildAndPushDockerRegistry
+                  name: Build and push image
+                  identifier: build_and_push_image
+                  spec:
+                    connectorRef: <+input>
+                    repo: <+input>
+                    tags:
+                      - <+pipeline.sequenceId>
+        when:
+          pipelineStatus: Success
+          condition: <+codebase.branch> == "{{ deploy_branch }}"
+{% endif %}

@@ -32,6 +32,7 @@ CI_TOOLS = {
     "azure":          ("azure_pipelines.yml.j2", "azure-pipelines.yml"),
     "bitbucket":      ("bitbucket_pipelines.yml.j2", "bitbucket-pipelines.yml"),
     "circleci":       ("circleci.yml.j2",        ".circleci/config.yml"),
+    "harness":        ("harness.yml.j2",         ".harness/pipeline.yaml"),
 }
 
 _NEXT_STEPS = {
@@ -64,6 +65,14 @@ _NEXT_STEPS = {
         "1. Commit .circleci/config.yml to your repository",
         "2. Go to CircleCI → Set Up Project and connect your repo",
         "3. Add environment variables in Project Settings → Environment Variables",
+    ],
+    "harness": [
+        "1. Commit .harness/pipeline.yaml to your repository",
+        "2. In Harness, fill in the <+input> runtime inputs (org/project identifiers, "
+        "codebase connector, and Docker registry connector if applicable) — either when "
+        "you first run the pipeline or in Pipeline Studio",
+        "3. Import the pipeline via Harness Git Experience, or paste it into a new pipeline "
+        "in Pipeline Studio",
     ],
 }
 
