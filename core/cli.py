@@ -6,6 +6,7 @@ from .modules.template_engine.engine import render_template_cli
 from .modules.tools.excel_compare import excel_compare_cli
 from .modules.akamai_engine.client import akamai_cli
 from .modules.ci_onboard.onboard import onboard_cli, list_supported_tools
+from .agents.coordinator import repl as chat_repl
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -62,6 +63,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="Print the rendered pipeline instead of writing it"
     )
     onboard.set_defaults(func=onboard_cli)
+
+    # Chat — the coordinator agent
+    chat = subparsers.add_parser(
+        "chat",
+        help="Start an interactive chat session with the DevSecOps Assistant coordinator",
+    )
+    chat.set_defaults(func=lambda args: chat_repl())
 
     return parser
 

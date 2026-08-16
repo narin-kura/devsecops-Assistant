@@ -31,3 +31,6 @@ Thumbs.db
 test_*.txt
 .pytest_cache/
 .coverage
+
+# Local registry state from dogfooding onboard/chat against this repo itself
+.devsecops/
