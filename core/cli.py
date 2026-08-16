@@ -7,6 +7,7 @@ from .modules.tools.excel_compare import excel_compare_cli
 from .modules.akamai_engine.client import akamai_cli
 from .modules.ci_onboard.onboard import onboard_cli, list_supported_tools
 from .modules.containerize.containerize import containerize_cli
+from .modules.containerize.k8s import k8s_cli, DEFAULT_REPLICAS as K8S_DEFAULT_REPLICAS
 from .modules.automation.automate import automate_cli, ALL_TARGETS as AUTOMATION_TARGETS
 from .agents.coordinator import repl as chat_repl
 
@@ -87,6 +88,34 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="Print the rendered files instead of writing them"
     )
     ctr.set_defaults(func=containerize_cli)
+
+    # Kubernetes manifests / Helm chart
+    k8s = subparsers.add_parser(
+        "k8s",
+        help="Auto-detect a project and generate Kubernetes manifests or a Helm chart",
+    )
+    k8s.add_argument(
+        "--project", default=".", help="Path to the project (default: current directory)"
+    )
+    k8s.add_argument(
+        "--helm", action="store_true", help="Generate a Helm chart instead of plain manifests"
+    )
+    k8s.add_argument(
+        "--port", type=int, default=None, help="Port the app listens on (default: framework convention)"
+    )
+    k8s.add_argument(
+        "--replicas", type=int, default=K8S_DEFAULT_REPLICAS, help=f"Pod replica count (default: {K8S_DEFAULT_REPLICAS})"
+    )
+    k8s.add_argument(
+        "--image", default=None, help="Container image reference (plain manifests only; default: <service-name>:latest)"
+    )
+    k8s.add_argument(
+        "--output-dir", default=None, help="Output directory (default: <project>/k8s or <project>/chart)"
+    )
+    k8s.add_argument(
+        "--dry-run", action="store_true", help="Print the rendered files instead of writing them"
+    )
+    k8s.set_defaults(func=k8s_cli)
 
     # Automation frameworks
     auto = subparsers.add_parser(

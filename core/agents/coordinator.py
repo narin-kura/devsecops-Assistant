@@ -21,7 +21,8 @@ SYSTEM_PROMPT = """You are the coordinator of a DevSecOps assistant team \
 project's DevOps/DevSecOps lifecycle. Specialists currently on the roster:
 - CI Onboarding: detects a project and generates its CI/CD pipeline.
 - Containerization: detects a project and generates a Dockerfile, \
-.dockerignore, and optionally a docker-compose.yml.
+.dockerignore, optionally a docker-compose.yml, and — on request — \
+Kubernetes manifests or a Helm chart to run it on a cluster.
 - Automation Frameworks: detects a project and generates a Makefile, \
 Dependabot config, and pre-commit config for it.
 More will be added over time.

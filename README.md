@@ -12,7 +12,7 @@ It is organized into:
   is meant to grow (see `ROADMAP.md`)
 - Modules:
   - **CI Onboarding** — auto-detect project & generate CI/CD pipelines for any CI tool
-  - **Containerization** — auto-detect project & generate a Dockerfile, .dockerignore, and optional docker-compose.yml
+  - **Containerization** — auto-detect project & generate a Dockerfile, .dockerignore, optional docker-compose.yml, Kubernetes manifests, or a Helm chart
   - **Automation Frameworks** — auto-detect project & generate a Makefile, Dependabot config, and pre-commit config
   - **Registry** — the shared catalog specialists read/write to link their work together
   - **Template Engine** — render infra / Akamai / pipeline templates
@@ -62,9 +62,9 @@ The coordinator is a Claude Opus agent that delegates to specialist agents
 rather than doing domain work itself — CI Onboarding, Containerization, and
 Automation Frameworks are on its roster so far. Describe what you need in
 plain language ("onboard this project to GitHub Actions", "containerize
-this app with a compose file", "set up pre-commit hooks for this repo") and
-it will ask for anything load-bearing it's missing before delegating and
-acting.
+this app with a compose file", "generate a Helm chart for this service",
+"set up pre-commit hooks for this repo") and it will ask for anything
+load-bearing it's missing before delegating and acting.
 
 ## Example usage
 
@@ -108,7 +108,31 @@ inputs** — language, base image, install/build commands, run command, and
 port are all inferred, with multi-stage builds for compiled languages
 (Java, Kotlin, Go, Rust, C#) so the final image doesn't ship build tooling.
 
-### 3. Scaffold dev-workflow automation (Makefile, Dependabot, pre-commit)
+### 3. Generate Kubernetes manifests or a Helm chart
+
+```bash
+# Plain Deployment + Service manifests
+python -m core.cli k8s
+
+# A minimal, installable Helm chart instead
+python -m core.cli k8s --helm
+
+# Override replica count, port, and (manifests only) the image reference
+python -m core.cli k8s --replicas 3 --port 9000 --image ghcr.io/org/app:v1
+
+# Preview without writing files (dry-run)
+python -m core.cli k8s --dry-run
+```
+
+Reuses the same project detection as `containerize` (service name from the
+project directory, port from the detected framework). The image reference
+defaults to `<service-name>:latest` — a placeholder matching what
+`containerize`'s own suggested `docker build -t` command would produce —
+since there's no way to infer a real registry path; override it with
+`--image` (plain manifests) or by editing `values.yaml` after the fact
+(Helm).
+
+### 4. Scaffold dev-workflow automation (Makefile, Dependabot, pre-commit)
 
 ```bash
 # Generate all three for the current directory
@@ -129,19 +153,19 @@ per-language command defaults as `onboard`), a `.github/dependabot.yml`
 local lint/test hooks when detected). Dependabot is skipped — not an
 error — if nothing recognizable to point it at exists.
 
-### 4. Render a template
+### 5. Render a template
 
 ```bash
 python -m core.cli template   --template examples/templates/akamai_property.json.j2   --values examples/values/akamai_property_values.yaml   --output out/property.json
 ```
 
-### 5. Compare two Excel / CSV files
+### 6. Compare two Excel / CSV files
 
 ```bash
 python -m core.cli excel-compare   --left examples/excel/left.csv   --right examples/excel/right.csv   --column key   --output out/diff.csv
 ```
 
-### 6. Akamai: list properties (placeholder example)
+### 7. Akamai: list properties (placeholder example)
 
 ```bash
 python -m core.cli akamai list-properties   --config config/akamai.yaml

@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: [[ service_name ]]
+  labels:
+    app: [[ service_name ]]
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: [[ service_name ]]
+  template:
+    metadata:
+      labels:
+        app: [[ service_name ]]
+    spec:
+      containers:
+        - name: [[ service_name ]]
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
