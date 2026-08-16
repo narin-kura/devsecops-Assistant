@@ -152,6 +152,19 @@ def test_delegate_to_automation_calls_the_specialist(monkeypatch):
     assert result == "handled: scaffold automation for /tmp/foo"
 
 
+def test_delegate_to_security_scanning_calls_the_specialist(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "core.agents.coordinator.security_scanning.run",
+        lambda task: calls.append(task) or f"handled: {task}",
+    )
+
+    result = coordinator.delegate_to_security_scanning("scan /tmp/foo for secrets")
+
+    assert calls == ["scan /tmp/foo for secrets"]
+    assert result == "handled: scan /tmp/foo for secrets"
+
+
 def test_repl_exits_immediately_on_exit_command(monkeypatch, capsys):
     monkeypatch.setattr("core.agents.coordinator.anthropic.Anthropic", lambda: FakeClient(FakeRunner([])))
     inputs = iter(["exit"])

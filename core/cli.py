@@ -9,6 +9,7 @@ from .modules.ci_onboard.onboard import onboard_cli, list_supported_tools
 from .modules.containerize.containerize import containerize_cli
 from .modules.containerize.k8s import k8s_cli, DEFAULT_REPLICAS as K8S_DEFAULT_REPLICAS
 from .modules.automation.automate import automate_cli, ALL_TARGETS as AUTOMATION_TARGETS
+from .modules.security_scan.remediation import security_scan_cli
 from .agents.coordinator import repl as chat_repl
 
 
@@ -136,6 +137,31 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="Print the rendered files instead of writing them"
     )
     auto.set_defaults(func=automate_cli)
+
+    # Security scanning
+    sec = subparsers.add_parser(
+        "security-scan",
+        help="Scan a project for secrets, risky code patterns, and vulnerable dependencies",
+    )
+    sec.add_argument(
+        "--project", default=".", help="Path to the project to scan (default: current directory)"
+    )
+    sec.add_argument(
+        "--no-secrets", action="store_true", help="Skip the secret scanner"
+    )
+    sec.add_argument(
+        "--no-patterns", action="store_true", help="Skip the risky-pattern scanner"
+    )
+    sec.add_argument(
+        "--no-dependencies", action="store_true", help="Skip the dependency vulnerability scanner"
+    )
+    sec.add_argument(
+        "--output", default=None, help="Findings report path (default: <project>/SECURITY_FINDINGS.md)"
+    )
+    sec.add_argument(
+        "--dry-run", action="store_true", help="Print a findings summary instead of writing the report"
+    )
+    sec.set_defaults(func=security_scan_cli)
 
     # Chat — the coordinator agent
     chat = subparsers.add_parser(

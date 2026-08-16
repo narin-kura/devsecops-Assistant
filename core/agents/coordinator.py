@@ -11,7 +11,7 @@ from __future__ import annotations
 import anthropic
 from anthropic import beta_tool
 
-from .specialists import automation, ci_onboarding, containerization
+from .specialists import automation, ci_onboarding, containerization, security_scanning
 
 MODEL_ID = "claude-opus-5"
 MAX_TOKENS = 16000
@@ -25,6 +25,10 @@ project's DevOps/DevSecOps lifecycle. Specialists currently on the roster:
 Kubernetes manifests or a Helm chart to run it on a cluster.
 - Automation Frameworks: detects a project and generates a Makefile, \
 Dependabot config, and pre-commit config for it.
+- Security Scanning: scans a project for hardcoded secrets, risky code \
+patterns, and vulnerable dependencies, and can write a consolidated \
+findings report. Read-only — it never opens pull requests or modifies \
+source.
 More will be added over time.
 
 Talk to the user like a helpful, direct teammate. Ask a clarifying \
@@ -74,7 +78,25 @@ def delegate_to_automation(task: str) -> str:
     return automation.run(task)
 
 
-TOOLS = [delegate_to_ci_onboarding, delegate_to_containerization, delegate_to_automation]
+@beta_tool
+def delegate_to_security_scanning(task: str) -> str:
+    """Hand a security-scanning task (secrets, risky patterns, vulnerable dependencies) to the Security Scanning specialist.
+
+    Args:
+        task: A complete, self-contained description of the task. Include the
+            project path, which scan types are wanted (or all of them), and
+            whether to write the SECURITY_FINDINGS.md report — the specialist
+            does not see this conversation, only this task text.
+    """
+    return security_scanning.run(task)
+
+
+TOOLS = [
+    delegate_to_ci_onboarding,
+    delegate_to_containerization,
+    delegate_to_automation,
+    delegate_to_security_scanning,
+]
 
 
 def _print_message(message) -> None:

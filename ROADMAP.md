@@ -28,9 +28,10 @@ specialists needing to change.
 
 Status as of 2026-08-16: Phase 0 and Phase 1 are done — CI Onboarding
 (item 1, 7 CI tools) is live behind the coordinator/chat surface with a
-shared registry. Phase 2 is now fully done, including its last loose end
-(K8s/Helm generation) — see Phase 2 below for detail. Next up is Phase 3
-(Security Scanning + Remediation, Exceptions Tracking).
+shared registry. Phase 2 is fully done (Containerization incl. K8s/Helm,
+Automation Frameworks). Phase 3's Security Scanning specialist (item 3) is
+now also done — see Phase 3 below. Exceptions Tracking (item 4) is the
+next item on deck.
 
 ## Interface direction (decided 2026-08-16)
 
@@ -256,15 +257,64 @@ needs an explicit human go-ahead, every time, no exceptions baked in later.
 
 ## Phase 3 — Security & governance wave
 
-- **Security Scanning + Remediation specialist** (item 3) — SAST,
-  dependency, and secret scanning (deferred from the original roadmap,
-  now scheduled here), plus actually proposing or opening remediation
-  PRs — "action items" means it closes the loop, not just reports.
+- **Security Scanning + Remediation specialist — done, 2026-08-16**
+  (item 3). `core/modules/security_scan/`: three independent, read-only
+  scanners — `secret_scan.py` (self-contained regex rules for AWS/GitHub/
+  Slack/Google/Stripe keys and PEM private keys, no external tools, no
+  network calls; every matched value is redacted via `findings.redact()`
+  before it can appear in output, a report, or the registry), `pattern_scan.py`
+  (a lightweight, explicitly-not-full-SAST text scanner for known-risky
+  idioms — `eval`/`exec`, `shell=True`, disabled TLS verification, unsafe
+  deserialization — dispatched by file extension, Python and JS/TS rule
+  sets so far), and `dependency_scan.py` (shells out to the ecosystem's
+  own scanner — `npm audit`, `pip-audit`, `cargo audit`, `govulncheck` —
+  detecting whether the tool is installed first and reporting the install
+  command if not, since this project deliberately doesn't reinvent a
+  vulnerability database). `remediation.py` aggregates all three into one
+  sorted result and can write a `SECURITY_FINDINGS.md` report (file, line,
+  concrete fix, per finding) — this is the "action items" / "closes the
+  loop" half of the item, scoped to a report rather than an auto-opened
+  PR (see the note below on why). Wired into a new specialist
+  (`core/agents/specialists/security_scanning.py`), the coordinator, and
+  the CLI (`security-scan`). Links a `security` registry entry (severity
+  counts + a stable `finding_id` per finding) so a future Exceptions
+  Tracking specialist can reference "the specific finding it waives"
+  without today's scanners needing to change.
+  **Deliberately scoped out: auto-opening remediation PRs.** Actually
+  mutating a repo (branches, commits, a GitHub token, PR creation) is a
+  materially bigger scope and a different risk class than everything else
+  this specialist does (which is entirely read-only scanning plus writing
+  one local report file) — split out the same way K8s/Helm was split from
+  the first Containerization pass. Worth returning to explicitly, not
+  assumed away.
+  **Verify-before-trusting note, in the spirit of this project's earlier
+  APIConnectionError lesson:** `npm audit --json`'s schema was empirically
+  verified against a real, deliberately-vulnerable scratch project during
+  development (see the `@pytest.mark.live` test in
+  `tests/test_dependency_scan.py`, gated on `npm` being on PATH) — its
+  parser is fully trusted. `pip-audit`/`cargo-audit`/`govulncheck` weren't
+  installed in the dev environment, so their output is parsed by a
+  best-effort generic extractor that degrades to a plain summary finding
+  on any schema mismatch, rather than risking confidently-wrong structured
+  fields for a shape nobody actually checked. Also found and fixed two
+  real bugs in the secret scanner while dogfooding it against this repo's
+  own code: a regex capture-group mismatch was redacting the wrong (tiny)
+  substring for two rules, and the placeholder denylist (meant to filter
+  `password = "changeme"`-style noise) was checking the credential's *key
+  name* instead of its *value*, so it never actually filtered anything —
+  both are now regression-tested. One accepted, documented limitation:
+  the pattern scanner is text-based, not AST-based, so it flags its own
+  rule-description strings when scanning this repo (they contain the
+  literal words "eval(", "exec(", etc. as prose) — normal behavior for a
+  scanner without semantic analysis, not a bug worth chasing with fragile
+  comment/string-detection heuristics.
 - **Exceptions Tracking specialist** (item 4) — a lightweight system of
   record for accepted risks/waivers: what was accepted, why, by whom, and
   when it expires, with reminders as expiry approaches. This is the first
   specialist that needs persistent state beyond the local filesystem
-  (a small store, not just files it renders and forgets).
+  (a small store, not just files it renders and forgets). Now has a
+  concrete integration point: Security Scanning's `finding_id` on every
+  finding is exactly "the specific finding it waives."
 
 ## Phase 4 — Infra & platform wave
 *First wave touching live infrastructure — safety model above applies.*
