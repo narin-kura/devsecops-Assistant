@@ -26,10 +26,11 @@ to be built as one monolith: each numbered item above becomes one specialist,
 added to the coordinator's roster one at a time, without the earlier
 specialists needing to change.
 
-Status as of 2026-08-16: CI Onboarding (item 1, narrowly) is the first
-capability built out end-to-end (detection → smart defaults → template
-rendering for 6 CI tools), but it's sitting uncommitted and unwired from the
-CLI. Everything below builds on that foundation.
+Status as of 2026-08-16: Phase 0 and Phase 1 are done — CI Onboarding
+(item 1, 7 CI tools) is live behind the coordinator/chat surface with a
+shared registry. Phase 2's Containerization specialist (item 5) is also
+done — see Phase 2 below for detail. Automation Frameworks (item 2) and
+K8s/Helm generation are the next items on deck.
 
 ## Interface direction (decided 2026-08-16)
 
@@ -182,13 +183,27 @@ needs an explicit human go-ahead, every time, no exceptions baked in later.
 ## Phase 2 — Scaffolding & automation wave
 *Extends what Phase 1 proved, still local-file-scoped.*
 
-- **Automation Frameworks specialist** (item 2) — generalizes
-  `template_engine` from one-shot rendering into *maintained* automation:
-  create a framework, and come back later to update it as the project or
-  its dependencies change, rather than a render-once template.
-- **Containerization specialist** (item 5) — Dockerfile / Compose / K8s
-  manifest / Helm chart generation and updates, reusing the same
-  detect-project-profile approach as the onboarding specialist.
+- **Containerization specialist** (item 5) — **done, 2026-08-16.** Dockerfile
+  + `.dockerignore` (+ optional `docker-compose.yml`) generation, reusing
+  the same detect-project-profile approach as the onboarding specialist:
+  `core/modules/containerize/` (`container_profiles.py` for smart defaults,
+  `containerize.py` orchestrator, `agent_tools.py`, Jinja templates),
+  `core/agents/specialists/containerization.py`, wired into the coordinator
+  and the CLI (`devsecops-assistant containerize`). Covers Python, JS/TS,
+  Java, Kotlin, Go, Rust, C#/.NET, and Ruby, with multi-stage builds for the
+  compiled languages so the runtime image doesn't ship build tooling; an
+  unrecognized language still gets a valid (if manual-review-needed)
+  Dockerfile rather than erroring. Registers/links `containerization` in
+  the shared registry the same way CI onboarding links `ci_cd`. K8s
+  manifest / Helm chart generation was scoped out of this pass — still
+  open, see below.
+- **Still open in this phase:** K8s manifest / Helm chart generation
+  (originally bundled with Containerization, deferred to keep this pass
+  shippable in one session — same detect-project-profile approach would
+  extend naturally). **Automation Frameworks specialist** (item 2) —
+  generalizes `template_engine` from one-shot rendering into *maintained*
+  automation: create a framework, and come back later to update it as the
+  project or its dependencies change, rather than a render-once template.
 
 ## Phase 3 — Security & governance wave
 

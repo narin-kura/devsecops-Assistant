@@ -1,0 +1,8 @@
+services:
+  {{ service_name }}:
+    build: .
+    ports:
+      - "{{ port }}:{{ port }}"
+    env_file:
+      - .env
+    restart: unless-stopped

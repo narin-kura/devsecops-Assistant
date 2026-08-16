@@ -1,0 +1,28 @@
+.git
+.gitignore
+.devsecops/
+Dockerfile
+.dockerignore
+docker-compose.yml
+README.md
+{% if language == 'python' -%}
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+{% elif language in ['javascript', 'typescript'] -%}
+node_modules/
+npm-debug.log*
+{% elif language in ['java', 'kotlin'] -%}
+target/
+build/
+.gradle/
+{% elif language == 'rust' -%}
+target/
+{% elif language == 'csharp' -%}
+bin/
+obj/
+{% elif language == 'ruby' -%}
+vendor/bundle/
+{% endif -%}

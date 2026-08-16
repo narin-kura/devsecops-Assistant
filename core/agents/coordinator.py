@@ -11,16 +11,18 @@ from __future__ import annotations
 import anthropic
 from anthropic import beta_tool
 
-from .specialists import ci_onboarding
+from .specialists import ci_onboarding, containerization
 
 MODEL_ID = "claude-opus-5"
 MAX_TOKENS = 16000
 
 SYSTEM_PROMPT = """You are the coordinator of a DevSecOps assistant team \
 — a small group of specialist agents, each responsible for one part of a \
-project's DevOps/DevSecOps lifecycle. Right now the only specialist on the \
-roster is CI Onboarding (detects a project and generates its CI/CD \
-pipeline); more will be added over time.
+project's DevOps/DevSecOps lifecycle. Specialists currently on the roster:
+- CI Onboarding: detects a project and generates its CI/CD pipeline.
+- Containerization: detects a project and generates a Dockerfile, \
+.dockerignore, and optionally a docker-compose.yml.
+More will be added over time.
 
 Talk to the user like a helpful, direct teammate. Ask a clarifying \
 question before delegating when something load-bearing is missing — which \
@@ -43,7 +45,20 @@ def delegate_to_ci_onboarding(task: str) -> str:
     return ci_onboarding.run(task)
 
 
-TOOLS = [delegate_to_ci_onboarding]
+@beta_tool
+def delegate_to_containerization(task: str) -> str:
+    """Hand a Dockerfile/containerization task to the Containerization specialist.
+
+    Args:
+        task: A complete, self-contained description of the task. Include the
+            project path, the port if known, whether a docker-compose.yml is
+            wanted, and whether to write the files or just preview them — the
+            specialist does not see this conversation, only this task text.
+    """
+    return containerization.run(task)
+
+
+TOOLS = [delegate_to_ci_onboarding, delegate_to_containerization]
 
 
 def _print_message(message) -> None:

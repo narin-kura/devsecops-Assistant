@@ -12,6 +12,7 @@ It is organized into:
   is meant to grow (see `ROADMAP.md`)
 - Modules:
   - **CI Onboarding** — auto-detect project & generate CI/CD pipelines for any CI tool
+  - **Containerization** — auto-detect project & generate a Dockerfile, .dockerignore, and optional docker-compose.yml
   - **Registry** — the shared catalog specialists read/write to link their work together
   - **Template Engine** — render infra / Akamai / pipeline templates
   - **Akamai DevOps Engine** — thin wrapper around Akamai APIs
@@ -42,7 +43,7 @@ pytest -m live -v   # opt-in: hits the real API, needs ANTHROPIC_API_KEY, costs 
 ```
 
 The default `pytest` run never makes a network call — `test_coordinator.py`
-and `test_ci_onboarding_specialist.py` mock the Tool Runner boundary to
+and the `test_*_specialist.py` files mock the Tool Runner boundary to
 verify the assistant's own orchestration logic (message history, error
 handling, delegation) without needing credentials. `test_live_chat.py` is
 excluded by default (see `pytest.ini`) and only runs real end-to-end checks
@@ -57,10 +58,11 @@ python -m core.cli chat
 ```
 
 The coordinator is a Claude Opus agent that delegates to specialist agents
-rather than doing domain work itself — right now the CI Onboarding
-specialist is on its roster. Describe what you need in plain language
-("onboard this project to GitHub Actions") and it will ask for anything
-load-bearing it's missing before delegating and acting.
+rather than doing domain work itself — CI Onboarding and Containerization
+are on its roster so far. Describe what you need in plain language
+("onboard this project to GitHub Actions", "containerize this app with a
+compose file") and it will ask for anything load-bearing it's missing
+before delegating and acting.
 
 ## Example usage
 
@@ -86,19 +88,37 @@ python -m core.cli onboard --ci azure --deploy-branch develop
 
 The assistant needs only **one required input** (`--ci`) — everything else (language, framework, build/test/lint commands, Docker usage) is auto-detected from your project files.
 
-### 2. Render a template
+### 2. Containerize a project (Dockerfile + .dockerignore, optional compose)
+
+```bash
+# Generate a Dockerfile for the current directory
+python -m core.cli containerize
+
+# Preview without writing files (dry-run)
+python -m core.cli containerize --dry-run
+
+# Also generate a docker-compose.yml, and override the exposed port
+python -m core.cli containerize --project ./my-app --compose --port 9000
+```
+
+Uses the same project detection as `onboard` and needs **zero required
+inputs** — language, base image, install/build commands, run command, and
+port are all inferred, with multi-stage builds for compiled languages
+(Java, Kotlin, Go, Rust, C#) so the final image doesn't ship build tooling.
+
+### 3. Render a template
 
 ```bash
 python -m core.cli template   --template examples/templates/akamai_property.json.j2   --values examples/values/akamai_property_values.yaml   --output out/property.json
 ```
 
-### 3. Compare two Excel / CSV files
+### 4. Compare two Excel / CSV files
 
 ```bash
 python -m core.cli excel-compare   --left examples/excel/left.csv   --right examples/excel/right.csv   --column key   --output out/diff.csv
 ```
 
-### 4. Akamai: list properties (placeholder example)
+### 5. Akamai: list properties (placeholder example)
 
 ```bash
 python -m core.cli akamai list-properties   --config config/akamai.yaml

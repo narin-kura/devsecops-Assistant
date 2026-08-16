@@ -126,6 +126,19 @@ def test_delegate_to_ci_onboarding_calls_the_specialist(monkeypatch):
     assert result == "handled: onboard /tmp/foo to github-actions"
 
 
+def test_delegate_to_containerization_calls_the_specialist(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "core.agents.coordinator.containerization.run",
+        lambda task: calls.append(task) or f"handled: {task}",
+    )
+
+    result = coordinator.delegate_to_containerization("containerize /tmp/foo")
+
+    assert calls == ["containerize /tmp/foo"]
+    assert result == "handled: containerize /tmp/foo"
+
+
 def test_repl_exits_immediately_on_exit_command(monkeypatch, capsys):
     monkeypatch.setattr("core.agents.coordinator.anthropic.Anthropic", lambda: FakeClient(FakeRunner([])))
     inputs = iter(["exit"])

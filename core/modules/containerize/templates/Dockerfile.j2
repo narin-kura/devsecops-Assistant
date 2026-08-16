@@ -1,0 +1,36 @@
+{% if multi_stage -%}
+FROM {{ builder_image }} AS builder
+WORKDIR {{ workdir }}
+{% if manifest_files %}
+COPY {{ manifest_files|join(' ') }} ./
+{% endif %}
+{% if install_cmd %}
+RUN {{ install_cmd }}
+{% endif %}
+COPY . .
+RUN {{ build_cmd }}
+
+FROM {{ base_image }}
+WORKDIR {{ workdir }}
+{% if runtime_extra %}
+{{ runtime_extra }}
+{% endif %}
+COPY --from=builder {{ build_copy_from }} {{ build_copy_to }}
+EXPOSE {{ port }}
+CMD [{% for tok in run_cmd %}"{{ tok }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{%- else -%}
+FROM {{ base_image }}
+WORKDIR {{ workdir }}
+{% if manifest_files %}
+COPY {{ manifest_files|join(' ') }} ./
+{% endif %}
+{% if install_cmd %}
+RUN {{ install_cmd }}
+{% endif %}
+COPY . .
+{% if build_cmd %}
+RUN {{ build_cmd }}
+{% endif %}
+EXPOSE {{ port }}
+CMD [{% for tok in run_cmd %}"{{ tok }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{%- endif %}

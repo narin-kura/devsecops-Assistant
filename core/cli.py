@@ -6,6 +6,7 @@ from .modules.template_engine.engine import render_template_cli
 from .modules.tools.excel_compare import excel_compare_cli
 from .modules.akamai_engine.client import akamai_cli
 from .modules.ci_onboard.onboard import onboard_cli, list_supported_tools
+from .modules.containerize.containerize import containerize_cli
 from .agents.coordinator import repl as chat_repl
 
 
@@ -63,6 +64,28 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="Print the rendered pipeline instead of writing it"
     )
     onboard.set_defaults(func=onboard_cli)
+
+    # Containerization
+    ctr = subparsers.add_parser(
+        "containerize",
+        help="Auto-detect a project and generate a Dockerfile (+ .dockerignore, optional compose)",
+    )
+    ctr.add_argument(
+        "--project", default=".", help="Path to the project to containerize (default: current directory)"
+    )
+    ctr.add_argument(
+        "--port", type=int, default=None, help="Port the app listens on (default: framework convention)"
+    )
+    ctr.add_argument(
+        "--output", default=None, help="Dockerfile output path (default: <project>/Dockerfile)"
+    )
+    ctr.add_argument(
+        "--compose", action="store_true", help="Also generate a docker-compose.yml"
+    )
+    ctr.add_argument(
+        "--dry-run", action="store_true", help="Print the rendered files instead of writing them"
+    )
+    ctr.set_defaults(func=containerize_cli)
 
     # Chat — the coordinator agent
     chat = subparsers.add_parser(
