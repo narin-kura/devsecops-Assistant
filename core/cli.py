@@ -5,6 +5,7 @@ from .logging_utils import setup_logging
 from .modules.template_engine.engine import render_template_cli
 from .modules.tools.excel_compare import excel_compare_cli
 from .modules.akamai_engine.client import akamai_cli
+from .modules.ci_onboard.onboard import onboard_cli, list_supported_tools
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -40,12 +41,41 @@ def build_parser() -> argparse.ArgumentParser:
     aka = subparsers.add_parser("akamai", help="Akamai DevOps engine commands")
     aka.set_defaults(func=akamai_cli)
 
+    # CI onboarding
+    onboard = subparsers.add_parser(
+        "onboard",
+        help="Auto-detect a project and generate a CI/CD pipeline",
+    )
+    onboard.add_argument(
+        "--project", default=".", help="Path to the project to onboard (default: current directory)"
+    )
+    onboard.add_argument(
+        "--ci", required=True, choices=list_supported_tools(), help="Target CI tool"
+    )
+    onboard.add_argument(
+        "--deploy-branch", default="main", help="Branch to deploy from (default: main)"
+    )
+    onboard.add_argument(
+        "--output", default=None, help="Output file path (default: the CI tool's conventional path)"
+    )
+    onboard.add_argument(
+        "--dry-run", action="store_true", help="Print the rendered pipeline instead of writing it"
+    )
+    onboard.set_defaults(func=onboard_cli)
+
     return parser
 
 
 def main(argv=None) -> int:
     if argv is None:
         argv = sys.argv[1:]
+
+    # Some commands print emoji/box-drawing characters; Windows consoles
+    # often default to a non-UTF-8 codepage (e.g. cp1252) that can't encode
+    # them, which would otherwise crash the process mid-output.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
 
     parser = build_parser()
     args = parser.parse_args(argv)

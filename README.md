@@ -1,11 +1,14 @@
 
 
-This is a modular **DevSecOps Assistant** skeleton implemented in Python.
+# DevSecOps Assistant
+
+This is a modular **DevSecOps Assistant** implemented in Python.
 
 It is organized into:
-- A reusable Python package: `devsecops_assistant`
-- A CLI entrypoint: `devsecops-assistant` (via `python -m devsecops_assistant.cli`)
+- A reusable Python package: `core`
+- A CLI entrypoint: `devsecops-assistant` (via `python -m core.cli`)
 - Modules:
+  - **CI Onboarding** — auto-detect project & generate CI/CD pipelines for any CI tool
   - **Template Engine** — render infra / Akamai / pipeline templates
   - **Akamai DevOps Engine** — thin wrapper around Akamai APIs
   - **Tools** — utilities such as Excel column comparison
@@ -22,27 +25,49 @@ source .venv/bin/activate   # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 # Show CLI help
-python -m devsecops_assistant.cli -h
+python -m core.cli -h
 ```
 
 ## Example usage
 
-### 1. Render a template
+### 1. Onboard a project to CI/CD (auto-detects language & tooling)
 
 ```bash
-python -m devsecops_assistant.cli template   --template examples/templates/akamai_property.json.j2   --values examples/values/akamai_property_values.yaml   --output out/property.json
+# Onboard current directory to GitHub Actions
+python -m core.cli onboard --ci github-actions
+
+# Onboard a specific project to GitLab CI
+python -m core.cli onboard --project ./my-app --ci gitlab
+
+# Preview without writing files (dry-run)
+python -m core.cli onboard --ci jenkins --dry-run
+
+# Override deploy branch
+python -m core.cli onboard --ci azure --deploy-branch develop
 ```
 
-### 2. Compare two Excel / CSV files
+**Supported CI tools:** `github-actions`, `gitlab`, `jenkins`, `azure`, `bitbucket`, `circleci`
+
+**Auto-detected languages:** Python, JavaScript/TypeScript, Java/Kotlin, Go, Rust, C#/.NET, Ruby
+
+The assistant needs only **one required input** (`--ci`) — everything else (language, framework, build/test/lint commands, Docker usage) is auto-detected from your project files.
+
+### 2. Render a template
 
 ```bash
-python -m devsecops_assistant.cli excel-compare   --left examples/excel/left.csv   --right examples/excel/right.csv   --column key   --output out/diff.csv
+python -m core.cli template   --template examples/templates/akamai_property.json.j2   --values examples/values/akamai_property_values.yaml   --output out/property.json
 ```
 
-### 3. Akamai: list properties (placeholder example)
+### 3. Compare two Excel / CSV files
 
 ```bash
-python -m devsecops_assistant.cli akamai list-properties   --config config/akamai.yaml
+python -m core.cli excel-compare   --left examples/excel/left.csv   --right examples/excel/right.csv   --column key   --output out/diff.csv
+```
+
+### 4. Akamai: list properties (placeholder example)
+
+```bash
+python -m core.cli akamai list-properties   --config config/akamai.yaml
 ```
 
 You can now push this project to:
