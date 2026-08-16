@@ -139,6 +139,19 @@ def test_delegate_to_containerization_calls_the_specialist(monkeypatch):
     assert result == "handled: containerize /tmp/foo"
 
 
+def test_delegate_to_automation_calls_the_specialist(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "core.agents.coordinator.automation.run",
+        lambda task: calls.append(task) or f"handled: {task}",
+    )
+
+    result = coordinator.delegate_to_automation("scaffold automation for /tmp/foo")
+
+    assert calls == ["scaffold automation for /tmp/foo"]
+    assert result == "handled: scaffold automation for /tmp/foo"
+
+
 def test_repl_exits_immediately_on_exit_command(monkeypatch, capsys):
     monkeypatch.setattr("core.agents.coordinator.anthropic.Anthropic", lambda: FakeClient(FakeRunner([])))
     inputs = iter(["exit"])

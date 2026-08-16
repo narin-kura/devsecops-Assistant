@@ -7,6 +7,7 @@ from .modules.tools.excel_compare import excel_compare_cli
 from .modules.akamai_engine.client import akamai_cli
 from .modules.ci_onboard.onboard import onboard_cli, list_supported_tools
 from .modules.containerize.containerize import containerize_cli
+from .modules.automation.automate import automate_cli, ALL_TARGETS as AUTOMATION_TARGETS
 from .agents.coordinator import repl as chat_repl
 
 
@@ -86,6 +87,26 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="Print the rendered files instead of writing them"
     )
     ctr.set_defaults(func=containerize_cli)
+
+    # Automation frameworks
+    auto = subparsers.add_parser(
+        "automate",
+        help="Auto-detect a project and generate dev-workflow automation (Makefile, Dependabot, pre-commit)",
+    )
+    auto.add_argument(
+        "--project", default=".", help="Path to the project (default: current directory)"
+    )
+    auto.add_argument(
+        "--targets",
+        nargs="+",
+        choices=list(AUTOMATION_TARGETS),
+        default=None,
+        help="Which artifacts to generate (default: all of them)",
+    )
+    auto.add_argument(
+        "--dry-run", action="store_true", help="Print the rendered files instead of writing them"
+    )
+    auto.set_defaults(func=automate_cli)
 
     # Chat — the coordinator agent
     chat = subparsers.add_parser(

@@ -13,6 +13,7 @@ It is organized into:
 - Modules:
   - **CI Onboarding** — auto-detect project & generate CI/CD pipelines for any CI tool
   - **Containerization** — auto-detect project & generate a Dockerfile, .dockerignore, and optional docker-compose.yml
+  - **Automation Frameworks** — auto-detect project & generate a Makefile, Dependabot config, and pre-commit config
   - **Registry** — the shared catalog specialists read/write to link their work together
   - **Template Engine** — render infra / Akamai / pipeline templates
   - **Akamai DevOps Engine** — thin wrapper around Akamai APIs
@@ -58,11 +59,12 @@ python -m core.cli chat
 ```
 
 The coordinator is a Claude Opus agent that delegates to specialist agents
-rather than doing domain work itself — CI Onboarding and Containerization
-are on its roster so far. Describe what you need in plain language
-("onboard this project to GitHub Actions", "containerize this app with a
-compose file") and it will ask for anything load-bearing it's missing
-before delegating and acting.
+rather than doing domain work itself — CI Onboarding, Containerization, and
+Automation Frameworks are on its roster so far. Describe what you need in
+plain language ("onboard this project to GitHub Actions", "containerize
+this app with a compose file", "set up pre-commit hooks for this repo") and
+it will ask for anything load-bearing it's missing before delegating and
+acting.
 
 ## Example usage
 
@@ -106,19 +108,40 @@ inputs** — language, base image, install/build commands, run command, and
 port are all inferred, with multi-stage builds for compiled languages
 (Java, Kotlin, Go, Rust, C#) so the final image doesn't ship build tooling.
 
-### 3. Render a template
+### 3. Scaffold dev-workflow automation (Makefile, Dependabot, pre-commit)
+
+```bash
+# Generate all three for the current directory
+python -m core.cli automate
+
+# Only the Makefile
+python -m core.cli automate --targets makefile
+
+# Preview without writing files (dry-run)
+python -m core.cli automate --dry-run
+```
+
+Generates a `Makefile` (install/build/test/lint/clean, using the same
+per-language command defaults as `onboard`), a `.github/dependabot.yml`
+(covering the detected dependency ecosystem, plus `docker` and
+`github-actions` if those are already present), and a
+`.pre-commit-config.yaml` (baseline hygiene hooks always included, plus
+local lint/test hooks when detected). Dependabot is skipped — not an
+error — if nothing recognizable to point it at exists.
+
+### 4. Render a template
 
 ```bash
 python -m core.cli template   --template examples/templates/akamai_property.json.j2   --values examples/values/akamai_property_values.yaml   --output out/property.json
 ```
 
-### 4. Compare two Excel / CSV files
+### 5. Compare two Excel / CSV files
 
 ```bash
 python -m core.cli excel-compare   --left examples/excel/left.csv   --right examples/excel/right.csv   --column key   --output out/diff.csv
 ```
 
-### 5. Akamai: list properties (placeholder example)
+### 6. Akamai: list properties (placeholder example)
 
 ```bash
 python -m core.cli akamai list-properties   --config config/akamai.yaml

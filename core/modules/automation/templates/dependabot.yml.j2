@@ -1,0 +1,8 @@
+version: 2
+updates:
+{% for eco in ecosystems %}
+  - package-ecosystem: "{{ eco }}"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+{% endfor %}

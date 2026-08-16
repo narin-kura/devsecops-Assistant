@@ -1,0 +1,25 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+{% if (has_lint and lint_cmd) or (has_tests and test_cmd) %}
+  - repo: local
+    hooks:
+{% if has_lint and lint_cmd %}
+      - id: lint
+        name: Lint
+        entry: {{ lint_cmd }}
+        language: system
+        pass_filenames: false
+{% endif %}
+{% if has_tests and test_cmd %}
+      - id: test
+        name: Test
+        entry: {{ test_cmd }}
+        language: system
+        pass_filenames: false
+{% endif %}
+{% endif %}

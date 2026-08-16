@@ -11,7 +11,7 @@ from __future__ import annotations
 import anthropic
 from anthropic import beta_tool
 
-from .specialists import ci_onboarding, containerization
+from .specialists import automation, ci_onboarding, containerization
 
 MODEL_ID = "claude-opus-5"
 MAX_TOKENS = 16000
@@ -22,6 +22,8 @@ project's DevOps/DevSecOps lifecycle. Specialists currently on the roster:
 - CI Onboarding: detects a project and generates its CI/CD pipeline.
 - Containerization: detects a project and generates a Dockerfile, \
 .dockerignore, and optionally a docker-compose.yml.
+- Automation Frameworks: detects a project and generates a Makefile, \
+Dependabot config, and pre-commit config for it.
 More will be added over time.
 
 Talk to the user like a helpful, direct teammate. Ask a clarifying \
@@ -58,7 +60,20 @@ def delegate_to_containerization(task: str) -> str:
     return containerization.run(task)
 
 
-TOOLS = [delegate_to_ci_onboarding, delegate_to_containerization]
+@beta_tool
+def delegate_to_automation(task: str) -> str:
+    """Hand a dev-workflow automation task (Makefile, Dependabot, pre-commit) to the Automation Frameworks specialist.
+
+    Args:
+        task: A complete, self-contained description of the task. Include the
+            project path, which artifacts are wanted (or all of them), and
+            whether to write the files or just preview them — the specialist
+            does not see this conversation, only this task text.
+    """
+    return automation.run(task)
+
+
+TOOLS = [delegate_to_ci_onboarding, delegate_to_containerization, delegate_to_automation]
 
 
 def _print_message(message) -> None:

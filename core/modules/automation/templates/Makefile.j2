@@ -1,0 +1,20 @@
+.PHONY:{% if install_cmd %} install{% endif %}{% if build_cmd %} build{% endif %}{% if has_tests and test_cmd %} test{% endif %}{% if has_lint and lint_cmd %} lint{% endif %} clean
+
+{% if install_cmd %}
+install:
+	{{ install_cmd }}
+{% endif %}
+{% if build_cmd %}
+build:
+	{{ build_cmd }}
+{% endif %}
+{% if has_tests and test_cmd %}
+test:
+	{{ test_cmd }}
+{% endif %}
+{% if has_lint and lint_cmd %}
+lint:
+	{{ lint_cmd }}
+{% endif %}
+clean:
+	{% if cache_paths %}rm -rf {{ cache_paths|join(' ') }}{% else %}@echo "Nothing to clean"{% endif %}

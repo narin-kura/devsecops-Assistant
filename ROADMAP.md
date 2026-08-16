@@ -28,9 +28,10 @@ specialists needing to change.
 
 Status as of 2026-08-16: Phase 0 and Phase 1 are done — CI Onboarding
 (item 1, 7 CI tools) is live behind the coordinator/chat surface with a
-shared registry. Phase 2's Containerization specialist (item 5) is also
-done — see Phase 2 below for detail. Automation Frameworks (item 2) and
-K8s/Helm generation are the next items on deck.
+shared registry. Phase 2 is now done in full — Containerization (item 5)
+and Automation Frameworks (item 2) are both shipped; see Phase 2 below for
+detail. K8s/Helm generation (split out of Containerization to keep it
+shippable) is the one loose end before Phase 3 (Security & governance).
 
 ## Interface direction (decided 2026-08-16)
 
@@ -197,13 +198,32 @@ needs an explicit human go-ahead, every time, no exceptions baked in later.
   the shared registry the same way CI onboarding links `ci_cd`. K8s
   manifest / Helm chart generation was scoped out of this pass — still
   open, see below.
-- **Still open in this phase:** K8s manifest / Helm chart generation
-  (originally bundled with Containerization, deferred to keep this pass
-  shippable in one session — same detect-project-profile approach would
-  extend naturally). **Automation Frameworks specialist** (item 2) —
-  generalizes `template_engine` from one-shot rendering into *maintained*
-  automation: create a framework, and come back later to update it as the
-  project or its dependencies change, rather than a render-once template.
+- **Automation Frameworks specialist** (item 2) — **done, 2026-08-16.**
+  Interpreted "automation frameworks — create, and keep updated" as the
+  recurring dev-workflow automation every project needs, not a new IaC
+  domain (that's Infra Management, Phase 4): `core/modules/automation/`
+  (`ecosystem_profiles.py` mapping language+package-manager to Dependabot's
+  `package-ecosystem` identifiers, `automate.py` orchestrator reusing
+  `ci_onboard/profiles.py`'s `get_profile()` for install/build/test/lint
+  commands rather than re-deriving them, `agent_tools.py`, Jinja templates),
+  `core/agents/specialists/automation.py`, wired into the coordinator
+  (`delegate_to_automation`) and the CLI (`automate` subcommand,
+  `--targets` to pick a subset). Generates three artifacts: a `Makefile`
+  (install/build/test/lint/clean), a `.github/dependabot.yml` (covers the
+  detected language ecosystem, plus `docker`/`github-actions` ecosystems
+  when a Dockerfile or workflow already exists — the literal "keep
+  [dependencies] updated" reading, since Dependabot runs on its own
+  schedule once committed), and a `.pre-commit-config.yaml` (baseline
+  hygiene hooks always included — trailing-whitespace, end-of-file-fixer,
+  check-merge-conflict — plus local lint/test hooks when detected).
+  Dependabot generation is skipped (not an error) when nothing recognizable
+  exists to point it at — same never-hard-fail posture as Containerization.
+  Links an `automation` entry in the shared registry, same contract as
+  `ci_cd` and `containerization`.
+- **Still open:** K8s manifest / Helm chart generation (originally bundled
+  with Containerization, deferred to keep that pass shippable in one
+  session — same detect-project-profile approach would extend naturally;
+  this is now the one remaining loose end from Phase 2).
 
 ## Phase 3 — Security & governance wave
 
