@@ -10,6 +10,7 @@ from .modules.containerize.containerize import containerize_cli
 from .modules.containerize.k8s import k8s_cli, DEFAULT_REPLICAS as K8S_DEFAULT_REPLICAS
 from .modules.automation.automate import automate_cli, ALL_TARGETS as AUTOMATION_TARGETS
 from .modules.security_scan.remediation import security_scan_cli
+from .modules.exceptions.cli_entry import exceptions_cli
 from .agents.coordinator import repl as chat_repl
 
 
@@ -162,6 +163,36 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="Print a findings summary instead of writing the report"
     )
     sec.set_defaults(func=security_scan_cli)
+
+    # Exceptions tracking (accepted-risk waivers)
+    exc = subparsers.add_parser(
+        "exceptions",
+        help="Track accepted security risks (waivers) — create, list, revoke, or check expiry",
+    )
+    exc_sub = exc.add_subparsers(dest="exceptions_command", metavar="<action>")
+
+    exc_create = exc_sub.add_parser("create", help="Record a new exception")
+    exc_create.add_argument("--project", default=".", help="Path to the project (default: current directory)")
+    exc_create.add_argument("--description", required=True, help="What is being accepted")
+    exc_create.add_argument("--justification", required=True, help="Why it's acceptable")
+    exc_create.add_argument("--approved-by", required=True, help="Who approved it")
+    exc_create.add_argument("--expires-at", required=True, help="ISO date/datetime this exception expires, e.g. 2026-12-01")
+    exc_create.add_argument("--finding-id", default=None, help="The Security Scanning finding_id this waives, if any")
+
+    exc_list = exc_sub.add_parser("list", help="List recorded exceptions")
+    exc_list.add_argument("--project", default=".", help="Path to the project (default: current directory)")
+    exc_list.add_argument("--status", choices=["active", "expired", "revoked"], default=None, help="Filter by status")
+
+    exc_revoke = exc_sub.add_parser("revoke", help="Revoke an exception before its expiry")
+    exc_revoke.add_argument("--project", default=".", help="Path to the project (default: current directory)")
+    exc_revoke.add_argument("--waiver-id", required=True, help="The exception's id")
+    exc_revoke.add_argument("--reason", required=True, help="Why it's being revoked")
+
+    exc_expiring = exc_sub.add_parser("expiring", help="List active exceptions expiring soon")
+    exc_expiring.add_argument("--project", default=".", help="Path to the project (default: current directory)")
+    exc_expiring.add_argument("--within-days", type=int, default=7, help="How many days ahead to check (default: 7)")
+
+    exc.set_defaults(func=exceptions_cli)
 
     # Chat — the coordinator agent
     chat = subparsers.add_parser(

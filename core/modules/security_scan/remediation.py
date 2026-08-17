@@ -29,12 +29,21 @@ class SecurityScanResult:
     dependency_outcome: Optional[DependencyScanOutcome] = None
     dry_run: bool = False
     report_path: Optional[Path] = None
+    # finding_id -> Waiver, for findings with an active exception recorded
+    # against them. Populated from core.modules.exceptions.store, which is
+    # the concrete realization of "the shared registry links specialists
+    # together" for these two: a finding's stable id is exactly what an
+    # exception references.
+    waivers: Dict[str, object] = field(default_factory=dict)
 
     def counts_by_severity(self) -> Dict[str, int]:
         counts = {s: 0 for s in SEVERITIES}
         for finding in self.findings:
             counts[finding.severity] = counts.get(finding.severity, 0) + 1
         return counts
+
+    def unwaived_findings(self) -> List[Finding]:
+        return [f for f in self.findings if f.finding_id not in self.waivers]
 
 
 def run_full_scan(
@@ -63,10 +72,21 @@ def run_full_scan(
 
     findings.sort(key=lambda f: f.sort_key())
 
+    # Cross-reference Exceptions Tracking: a finding whose id has an active
+    # waiver recorded against it isn't unaddressed, it's a reviewed and
+    # accepted risk. Graceful by construction if exceptions.json doesn't
+    # exist yet (list_exceptions returns []) — no import-time coupling, no
+    # error just because nobody's used Exceptions Tracking on this project.
+    from ..exceptions.store import list_exceptions
+
+    active_waivers = {w.finding_id: w for w in list_exceptions(project_path, status="active") if w.finding_id}
+    waivers = {f.finding_id: active_waivers[f.finding_id] for f in findings if f.finding_id in active_waivers}
+
     return SecurityScanResult(
         project_path=project_path,
         findings=findings,
         dependency_outcome=dependency_outcome,
+        waivers=waivers,
     )
 
 
@@ -92,6 +112,10 @@ def build_markdown_report(result: SecurityScanResult) -> str:
         lines.append(f"> Dependency scan did not run: {result.dependency_outcome.note}")
         lines.append("")
 
+    if result.waivers:
+        lines.append(f"> {len(result.waivers)} finding(s) below have an active exception recorded against them.")
+        lines.append("")
+
     if not result.findings:
         lines.append("No findings.")
         lines.append("")
@@ -100,12 +124,22 @@ def build_markdown_report(result: SecurityScanResult) -> str:
         lines.append("")
         for f in result.findings:
             location = f"{f.file}:{f.line}" if f.line else (f.file or "—")
-            lines.append(f"### [{f.severity.upper()}] {f.rule_id} — `{location}`")
+            waiver = result.waivers.get(f.finding_id)
+            title = f"### [{f.severity.upper()}] {f.rule_id} — `{location}`"
+            if waiver:
+                title += " ✅ WAIVED"
+            lines.append(title)
             lines.append("")
             lines.append(f.message)
             if f.snippet:
                 lines.append("")
                 lines.append(f"```\n{f.snippet}\n```")
+            if waiver:
+                lines.append("")
+                lines.append(
+                    f"**Accepted risk** ({waiver.waiver_id}): {waiver.justification} "
+                    f"— approved by {waiver.approved_by}, expires {waiver.expires_at}."
+                )
             lines.append("")
             lines.append(f"*Finding ID: `{f.finding_id}`*")
             lines.append("")
@@ -137,6 +171,8 @@ def format_report(result: SecurityScanResult) -> str:
         if counts[severity]:
             lines.append(f"   {severity:<10}: {counts[severity]}")
     lines.append(f"   {'total':<10}: {len(result.findings)}")
+    if result.waivers:
+        lines.append(f"   {'waived':<10}: {len(result.waivers)}")
     lines.append("")
 
     if result.dependency_outcome and not result.dependency_outcome.ran:
@@ -149,7 +185,8 @@ def format_report(result: SecurityScanResult) -> str:
         lines.append("📄 Dry run — report not written. Findings:")
         for f in result.findings[:20]:
             location = f"{f.file}:{f.line}" if f.line else (f.file or "—")
-            lines.append(f"   [{f.severity}] {f.rule_id} @ {location}")
+            waived = " (waived)" if f.finding_id in result.waivers else ""
+            lines.append(f"   [{f.severity}] {f.rule_id} @ {location}{waived}")
         if len(result.findings) > 20:
             lines.append(f"   ... and {len(result.findings) - 20} more")
 

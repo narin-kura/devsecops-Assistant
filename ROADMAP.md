@@ -29,9 +29,12 @@ specialists needing to change.
 Status as of 2026-08-16: Phase 0 and Phase 1 are done — CI Onboarding
 (item 1, 7 CI tools) is live behind the coordinator/chat surface with a
 shared registry. Phase 2 is fully done (Containerization incl. K8s/Helm,
-Automation Frameworks). Phase 3's Security Scanning specialist (item 3) is
-now also done — see Phase 3 below. Exceptions Tracking (item 4) is the
-next item on deck.
+Automation Frameworks). **Phase 3 is now fully done** — Security Scanning
+(item 3) and Exceptions Tracking (item 4), genuinely linked to each other
+via a finding's stable id — see Phase 3 below. Phase 4 (Infra Management,
+Cloud Platform, Networking — the first wave touching live infrastructure,
+where the confirm-before-mutate safety model actually starts to matter)
+is next.
 
 ## Interface direction (decided 2026-08-16)
 
@@ -308,13 +311,39 @@ needs an explicit human go-ahead, every time, no exceptions baked in later.
   literal words "eval(", "exec(", etc. as prose) — normal behavior for a
   scanner without semantic analysis, not a bug worth chasing with fragile
   comment/string-detection heuristics.
-- **Exceptions Tracking specialist** (item 4) — a lightweight system of
-  record for accepted risks/waivers: what was accepted, why, by whom, and
-  when it expires, with reminders as expiry approaches. This is the first
-  specialist that needs persistent state beyond the local filesystem
-  (a small store, not just files it renders and forgets). Now has a
-  concrete integration point: Security Scanning's `finding_id` on every
-  finding is exactly "the specific finding it waives."
+- **Exceptions Tracking specialist — done, 2026-08-16** (item 4).
+  `core/modules/exceptions/store.py`: a genuinely mutable system of record
+  (`.devsecops/exceptions.json`, alongside registry.json) — the first
+  specialist that isn't "render a file, forget it." A waiver is created
+  with a description, justification, approver, and a *required* expiry
+  (the specialist's system prompt is instructed to push back if asked to
+  record one with no review date — an accepted risk with no expiry is how
+  it quietly becomes permanent), can later be revoked, and its status
+  (active/expired/revoked) is computed at read time from real wall-clock
+  comparisons, not a stored flag that could go stale. Wired into a new
+  specialist (`core/agents/specialists/exceptions_tracking.py`), the
+  coordinator, and the CLI (`exceptions create|list|revoke|expiring`).
+  **The `finding_id` integration is real, not just documented intent:**
+  `security_scan/remediation.py`'s `run_full_scan()` now cross-references
+  `core.modules.exceptions.store.list_exceptions()` after aggregating
+  findings — a finding with an active waiver against its `finding_id`
+  shows up marked `✅ WAIVED` (with the justification, approver, and
+  expiry inline) in both the Markdown report and the CLI/chat summary,
+  instead of appearing as an unaddressed issue. This is graceful by
+  construction when a project has never touched Exceptions Tracking
+  (`.devsecops/exceptions.json` doesn't exist yet → `list_exceptions()`
+  returns `[]`, no error, no import-time coupling beyond the one function
+  call). Caught and fixed one real bug during development: Python 3.8's
+  `datetime.fromisoformat()` parses a bare date like `"2026-12-01"` (the
+  natural way to specify an expiry) into a *naive* datetime, which then
+  raised `TypeError` when compared against the timezone-aware
+  `datetime.now(timezone.utc)` used everywhere else — fixed with one
+  shared `_parse_expiry()` helper that normalizes a naive result to UTC,
+  used by every code path that reads `expires_at` back. 33 new tests
+  (store CRUD/status transitions, agent tools, the specialist, and a
+  dedicated cross-module integration test file proving the waived-badge
+  behavior end-to-end) — 253 passed, 2 live-deselected. **Phase 3 is now
+  fully complete.**
 
 ## Phase 4 — Infra & platform wave
 *First wave touching live infrastructure — safety model above applies.*

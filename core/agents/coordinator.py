@@ -11,7 +11,7 @@ from __future__ import annotations
 import anthropic
 from anthropic import beta_tool
 
-from .specialists import automation, ci_onboarding, containerization, security_scanning
+from .specialists import automation, ci_onboarding, containerization, exceptions_tracking, security_scanning
 
 MODEL_ID = "claude-opus-5"
 MAX_TOKENS = 16000
@@ -29,6 +29,10 @@ Dependabot config, and pre-commit config for it.
 patterns, and vulnerable dependencies, and can write a consolidated \
 findings report. Read-only — it never opens pull requests or modifies \
 source.
+- Exceptions Tracking: records accepted-risk waivers (what was accepted, \
+why, by whom, when it expires) and reports which are expiring soon. Can \
+link a waiver to a specific Security Scanning finding_id, which then \
+shows as waived in that specialist's reports.
 More will be added over time.
 
 Talk to the user like a helpful, direct teammate. Ask a clarifying \
@@ -91,11 +95,27 @@ def delegate_to_security_scanning(task: str) -> str:
     return security_scanning.run(task)
 
 
+@beta_tool
+def delegate_to_exceptions_tracking(task: str) -> str:
+    """Hand an accepted-risk / waiver task to the Exceptions Tracking specialist.
+
+    Args:
+        task: A complete, self-contained description of the task. For
+            recording an exception, include the project path, what's being
+            accepted, why, who approved it, when it expires, and the
+            Security Scanning finding_id if this waives a specific finding —
+            the specialist does not see this conversation, only this task
+            text.
+    """
+    return exceptions_tracking.run(task)
+
+
 TOOLS = [
     delegate_to_ci_onboarding,
     delegate_to_containerization,
     delegate_to_automation,
     delegate_to_security_scanning,
+    delegate_to_exceptions_tracking,
 ]
 
 

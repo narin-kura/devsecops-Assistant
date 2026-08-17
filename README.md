@@ -15,6 +15,7 @@ It is organized into:
   - **Containerization** — auto-detect project & generate a Dockerfile, .dockerignore, optional docker-compose.yml, Kubernetes manifests, or a Helm chart
   - **Automation Frameworks** — auto-detect project & generate a Makefile, Dependabot config, and pre-commit config
   - **Security Scanning** — scan for hardcoded secrets, risky code patterns, and vulnerable dependencies; write a Markdown remediation report
+  - **Exceptions Tracking** — record accepted-risk waivers (what, why, who, until when) and check what's expiring soon; links directly to Security Scanning findings
   - **Registry** — the shared catalog specialists read/write to link their work together
   - **Template Engine** — render infra / Akamai / pipeline templates
   - **Akamai DevOps Engine** — thin wrapper around Akamai APIs
@@ -63,11 +64,13 @@ python -m core.cli chat
 
 The coordinator is a Claude Opus agent that delegates to specialist agents
 rather than doing domain work itself — CI Onboarding, Containerization,
-Automation Frameworks, and Security Scanning are on its roster so far.
-Describe what you need in plain language ("onboard this project to GitHub
-Actions", "containerize this app with a compose file", "generate a Helm
-chart for this service", "set up pre-commit hooks for this repo", "scan
-this project for hardcoded secrets") and it will ask for anything
+Automation Frameworks, Security Scanning, and Exceptions Tracking are on
+its roster so far. Describe what you need in plain language ("onboard this
+project to GitHub Actions", "containerize this app with a compose file",
+"generate a Helm chart for this service", "set up pre-commit hooks for
+this repo", "scan this project for hardcoded secrets", "record an
+exception for the SQL injection finding, approved by Jane, expires in 90
+days") and it will ask for anything
 load-bearing it's missing before delegating and acting.
 
 ## Example usage
@@ -187,19 +190,47 @@ Three independent scanners, all read-only:
 Findings never turn into an auto-opened pull request or a source edit —
 the report is the deliverable; applying fixes is a human decision.
 
-### 6. Render a template
+### 6. Track accepted security risks (waivers)
+
+```bash
+# Record an exception -- every exception needs an expiry
+python -m core.cli exceptions create --project . \
+  --description "Known lodash prototype-pollution CVE" \
+  --justification "internal tool, no untrusted input reaches this path" \
+  --approved-by "narin" --expires-at 2026-12-01 \
+  --finding-id <finding_id from a security-scan run>
+
+# List / filter
+python -m core.cli exceptions list --project . --status active
+
+# What's expiring soon
+python -m core.cli exceptions expiring --project . --within-days 14
+
+# Revoke before expiry
+python -m core.cli exceptions revoke --project . --waiver-id <id> --reason "risk materialized"
+```
+
+Stores waivers in `.devsecops/exceptions.json` per project — the first
+specialist with genuine mutable state (create, and later revoke) rather
+than a render-once artifact. Pass `--finding-id` (from a `security-scan`
+run's output) to link a waiver to one specific finding: the next
+`security-scan` run will show that finding marked `✅ WAIVED`, with the
+justification, approver, and expiry inline, instead of listing it as an
+unaddressed issue.
+
+### 7. Render a template
 
 ```bash
 python -m core.cli template   --template examples/templates/akamai_property.json.j2   --values examples/values/akamai_property_values.yaml   --output out/property.json
 ```
 
-### 7. Compare two Excel / CSV files
+### 8. Compare two Excel / CSV files
 
 ```bash
 python -m core.cli excel-compare   --left examples/excel/left.csv   --right examples/excel/right.csv   --column key   --output out/diff.csv
 ```
 
-### 8. Akamai: list properties (placeholder example)
+### 9. Akamai: list properties (placeholder example)
 
 ```bash
 python -m core.cli akamai list-properties   --config config/akamai.yaml
